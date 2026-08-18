@@ -5,8 +5,40 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# --- API Keys ---
+# --- API Keys & LLM Provider (Support OpenAI & Groq) ---
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+
+# LLM Base URL & Model Name
+if GROQ_API_KEY:
+    LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://api.groq.com/openai/v1")
+    LLM_MODEL = os.getenv("LLM_MODEL", "openai/gpt-oss-120b")
+else:
+    LLM_BASE_URL = os.getenv("LLM_BASE_URL", None)
+    LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
+
+
+def get_llm_client():
+    """Return OpenAI client configured for either Groq or OpenAI."""
+    try:
+        from openai import OpenAI
+        groq_key = os.getenv("GROQ_API_KEY", "")
+        openai_key = os.getenv("OPENAI_API_KEY", "")
+        base_url = os.getenv("LLM_BASE_URL", "")
+
+        if groq_key:
+            return OpenAI(
+                api_key=groq_key,
+                base_url=base_url or "https://api.groq.com/openai/v1"
+            )
+        elif openai_key and openai_key.startswith("sk-"):
+            if base_url:
+                return OpenAI(api_key=openai_key, base_url=base_url)
+            return OpenAI(api_key=openai_key)
+    except Exception:
+        pass
+    return None
+
 
 # --- Qdrant ---
 QDRANT_HOST = "localhost"
