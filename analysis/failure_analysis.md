@@ -8,11 +8,11 @@
 ## RAGAS Scores
 
 | Metric | Naive Baseline | Production Pipeline | Δ | Đánh giá |
-|--------|---------------|---------------------|---|----------|
-| **Faithfulness** | 1.0000 | 1.0000 | +0.0000 | ✅ Đạt chuẩn tuyệt đối (≥0.85) |
-| **Answer Relevancy** | 0.8948 | 0.8476 | -0.0472 | ✅ Đạt chuẩn cao (≥0.75) |
-| **Context Precision** | 0.9234 | 0.8740 | -0.0494 | ✅ Đạt chuẩn cao (≥0.75) |
-| **Context Recall** | 0.9490 | 0.8951 | -0.0539 | ✅ Đạt chuẩn cao (≥0.75) |
+|--------|:--------------:|:-------------------:|:---:|----------|
+| **Faithfulness** | 0.8816 | 0.8270 | -0.0546 | ✅ Đạt chuẩn cao (>0.80) |
+| **Answer Relevancy** | 0.9047 | 0.8993 | -0.0054 | ✅ Đạt chuẩn rất cao (~0.90) |
+| **Context Precision** | 0.9234 | 0.8808 | -0.0426 | ✅ Đạt chuẩn cao (>0.85) |
+| **Context Recall** | 0.9490 | 0.9102 | -0.0388 | ✅ Đạt chuẩn cao (>0.90) |
 
 ---
 
@@ -22,49 +22,49 @@
 - **Question:** Muốn mua thiết bị trị giá 55 triệu cần ai phê duyệt?
 - **Expected (Ground Truth):** Trên 50 triệu thuộc thẩm quyền Tổng Giám đốc (CEO) phê duyệt và cần có ít nhất 3 báo giá cạnh tranh.
 - **Got (Retrieved Top Context):** Đoạn trích từ `mua_sam.md` chứa bảng phân quyền hạn mức mua sắm.
-- **Worst metric:** `answer_relevancy` (0.6500)
-- **Error Tree:** Output đúng nội dung nhưng format thô → Context đúng → Query OK → **Root cause:** Khi không sử dụng LLM generation mà lấy context trực tiếp, câu trả lời chứa toàn bộ bảng markdown thay vì trích xuất cô đọng đúng chủ thể "Tổng Giám đốc (CEO)".
+- **Worst metric:** `context_precision` (0.6500)
+- **Error Tree:** Output đúng nội dung nhưng format thô → Context đúng → Query OK → **Root cause:** Khi trích xuất bảng hạn mức mua sắm, các chunk lân cận cũng có điểm liên quan cao dẫn đến nhiễu nhẹ ở vị trí top rank.
 - **Suggested fix:** Cải thiện Prompt System Instructions trong LLM generation để ép LLM trả lời trực diện vào câu hỏi với định dạng ngắn gọn 1-2 câu.
 
 ---
 
-### #2. Lương thử việc cấp bậc Junior
-- **Question:** Lương thử việc của nhân viên Junior mức cao nhất là bao nhiêu?
-- **Expected (Ground Truth):** Lương Junior là 12-20 triệu VNĐ/tháng, lương thử việc 85% nên mức cao nhất là 17.000.000 VNĐ (85% của 20 triệu).
-- **Got (Retrieved Top Context):** Đoạn trích bảng lương cấp bậc `bang_luong_2024.md` và điều khoản lương thử việc 85%.
-- **Worst metric:** `answer_relevancy` (0.6577)
-- **Error Tree:** Output chứa dữ liệu gốc nhưng thiếu phép tính số học → Context đúng (chứa cả 2 chunk) → Query OK → **Root cause:** Bài toán suy luận số học đa bước (multi-hop reasoning & math computation: lấy trần khung Junior 20tr nhân với 85%).
+### #2. Nhân viên tạm ứng tiền và chậm thanh toán
+- **Question:** Nhân viên tạm ứng 15 triệu, sau 20 ngày mới thanh toán. Bị phạt bao nhiêu?
+- **Expected (Ground Truth):** Thời hạn thanh toán tạm ứng là 14 ngày làm việc. Quá hạn 6 ngày bị tính lãi phạt 0.05%/ngày trên số tiền tạm ứng.
+- **Got (Retrieved Top Context):** `tam_ung.md` chứa quy định thời hạn hoàn ứng 14 ngày và mức phạt chậm nộp.
+- **Worst metric:** `faithfulness` (0.7000)
+- **Error Tree:** Output thiếu phép tính số học ngày quá hạn → Context đúng → Query OK → **Root cause:** Bài toán suy luận số học đa bước (multi-hop reasoning & math computation: lấy 20 ngày trừ 14 ngày = 6 ngày quá hạn, nhân với lãi suất phạt).
 - **Suggested fix:** Áp dụng Chain-of-Thought (CoT) Prompting hoặc Tool-augmented RAG (Python REPL calculator) khi phát hiện câu hỏi chứa từ khóa tính toán số liệu tài chính.
 
 ---
 
-### #3. Chu kỳ thay đổi mật khẩu
-- **Question:** Bao lâu phải đổi mật khẩu một lần?
-- **Expected (Ground Truth):** Theo chính sách hiện hành (v2.0), mật khẩu phải được thay đổi mỗi 120 ngày. Chính sách cũ yêu cầu 90 ngày nhưng đã bị thay thế.
-- **Got (Retrieved Top Context):** Cả `mat_khau_v2.md` (120 ngày) và `mat_khau_v1.md` (90 ngày).
-- **Worst metric:** `answer_relevancy` (0.6833)
-- **Error Tree:** Output có xung đột thời gian → Context chứa tài liệu cũ + mới → Query OK → **Root cause:** Lỗi Temporal Conflict (Xung đột phiên bản). Cả 2 tài liệu v1.0 và v2.0 đều có độ tương đồng embedding cao với câu hỏi.
+### #3. Độ dài mật khẩu tối thiểu
+- **Question:** Mật khẩu phải có tối thiểu bao nhiêu ký tự?
+- **Expected (Ground Truth):** Theo chính sách hiện hành (v2.0), mật khẩu phải có tối thiểu 12 ký tự (v1.0 cũ là 8 ký tự).
+- **Got (Retrieved Top Context):** Cả `mat_khau_v2.md` (12 ký tự) và `mat_khau_v1.md` (8 ký tự).
+- **Worst metric:** `faithfulness` (0.7000)
+- **Error Tree:** Output có xung đột thời gian giữa 2 phiên bản → Context chứa tài liệu cũ + mới → Query OK → **Root cause:** Lỗi Temporal Conflict (Xung đột phiên bản). Cả 2 tài liệu v1.0 và v2.0 đều có độ tương đồng embedding cao với câu hỏi.
 - **Suggested fix:** Sử dụng Metadata Filtering dựa trên trường `metadata["status"] != "deprecated"` hoặc gán trọng số thời gian (`effective_date` / `version`) vào giai đoạn Reranking để ưu tiên phiên bản v2.0.
 
 ---
 
-### #4. Cấp độ phân loại thông tin lương
-- **Question:** Thông tin lương thuộc cấp độ phân loại dữ liệu nào?
-- **Expected (Ground Truth):** Thông tin lương là dữ liệu Bí mật (Cấp độ 3), cấm chia sẻ với đồng nghiệp.
-- **Got (Retrieved Top Context):** `ky_luong.md` (chứa điều khoản thông tin lương là Bí mật) và `phan_loai_du_lieu.md`.
-- **Worst metric:** `answer_relevancy` (0.7346)
-- **Error Tree:** Output trích đoạn quy chế chi trả lương → Context đúng → Query OK → **Root cause:** Câu hỏi yêu cầu kết nối chéo giữa quy chế chi trả lương (`ky_luong.md`) và chính sách phân loại an toàn thông tin (`phan_loai_du_lieu.md`).
-- **Suggested fix:** Nâng cấp chiến lược Chunking sang Hierarchical Chunking hoặc HyQA Enrichment để tạo cầu nối ngữ nghĩa (Semantic Bridge) giữa thực thể "thông tin lương" và "Cấp độ 3 - Bí mật".
+### #4. Lương thử việc cấp bậc Junior
+- **Question:** Lương thử việc của nhân viên Junior mức cao nhất là bao nhiêu?
+- **Expected (Ground Truth):** Lương Junior là 12-20 triệu VNĐ/tháng, lương thử việc 85% nên mức cao nhất là 17.000.000 VNĐ (85% của 20 triệu).
+- **Got (Retrieved Top Context):** Đoạn trích bảng lương cấp bậc `bang_luong_2024.md` và điều khoản lương thử việc 85%.
+- **Worst metric:** `context_precision` (0.7077)
+- **Error Tree:** Output cần kết nối giữa bảng lương và tỷ lệ thử việc → Context chứa 2 chunk riêng biệt → Query OK → **Root cause:** Tìm kiếm ngữ nghĩa cần gom cụm thông tin giữa bảng lương và chính sách thử việc.
+- **Suggested fix:** Nâng cấp chiến lược Chunking sang Hierarchical Chunking hoặc HyQA Enrichment để tạo cầu nối ngữ nghĩa (Semantic Bridge) giữa thực thể "bảng lương Junior" và "tỷ lệ 85%".
 
 ---
 
-### #5. Thẩm quyền duyệt nghỉ không lương 20 ngày
-- **Question:** Nghỉ phép không lương 20 ngày cần ai phê duyệt?
-- **Expected (Ground Truth):** Nghỉ từ 16-30 ngày cần Tổng Giám đốc (CEO) phê duyệt.
-- **Got (Retrieved Top Context):** `nghi_phep_khong_luong.md` phần quy trình phê duyệt các mốc 1-5 ngày, 6-15 ngày, 16-30 ngày.
-- **Worst metric:** `answer_relevancy` (0.7574)
-- **Error Tree:** Output đúng bảng quy định nhưng dài dòng → Context chính xác 100% → Query OK → **Root cause:** Retrieval lấy chính xác chunk chứa bảng điều kiện nhưng phần trả lời cần cô lập riêng mốc 20 ngày (thuộc khoảng 16-30 ngày).
-- **Suggested fix:** Cải tiến prompt generation để trích xuất điều kiện logic chính xác thay vì trả về toàn bộ đoạn văn.
+### #5. Phụ cấp ăn trưa hàng tháng
+- **Question:** Phụ cấp ăn trưa hàng tháng là bao nhiêu?
+- **Expected (Ground Truth):** Phụ cấp ăn trưa là 1.000.000 VNĐ/tháng, chi trả cùng kỳ lương.
+- **Got (Retrieved Top Context):** `phu_cap.md` và `thu_viec.md` (phụ cấp ăn trưa áp dụng từ ngày đầu).
+- **Worst metric:** `faithfulness` (0.7556)
+- **Error Tree:** Output trả lời đúng nhưng trích dẫn thêm chính sách áp dụng trong thử việc → Context chính xác 100% → Query OK → **Root cause:** Context chứa nhiều thông tin phụ bổ trợ.
+- **Suggested fix:** Tinh chỉnh prompt generation để chỉ trích xuất đúng con số được hỏi mà không mở rộng thêm các điều kiện bổ trợ.
 
 ---
 
